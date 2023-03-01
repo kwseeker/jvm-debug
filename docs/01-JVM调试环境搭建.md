@@ -3,7 +3,8 @@
 **本地PC环境**：
 
 + Linux Mint 19 (Ubuntu 18 的内核)
-+ Clion
++ Clion2022.2
++ OpenJDK8u40
 
 **搭建步骤**：
 
@@ -32,7 +33,7 @@
 
    ```shell
    wget https://repo.huaweicloud.com/java/jdk/7u80-b15/jdk-7u80-linux-x64.tar.gz
-   tar -zxf jdk-7u80-linux-x64.tar.gz -C /usr/local/java/		# jdk1.7.0_80
+   tar -zxf jdk-7u80-linux-x64.tar.gz		# jdk1.7.0_80
    # 将 default-java 软连接指向 jdk1.7.0_80
    sudo ln -s default-java java-1.7.0
    # 检查版本是否切换成功
@@ -71,10 +72,11 @@
    ```shell
    # vi ./hotspot/make/linux/makefiles/gcc.make，然后找到 WARNINGS_ARE_ERRORS =，将这行注释掉；不然一些警告也会当作错误
    # 也可以在前面 configure 中添加参数 --disable-warnings-as-errors
-   
+   # 安装 compiledb, 用户生成 compile_commands.json
+   pip3 install compiledb
    # 编译
-   sudo make all ZIP_DEBUGINFO_FILES=0 ALLOW_DOWNLOADS=true
-   
+   # compiledb make all ZIP_DEBUGINFO_FILES=0 ALLOW_DOWNLOADS=true #编译报错
+   make all ZIP_DEBUGINFO_FILES=0 ALLOW_DOWNLOADS=true
    # 编译报错
    # This OS is not supported: Linux lee-pc 5.0.0-32-generic #34~18.04.2-Ubuntu
    # 修改 hotspot/make/linux/Makefile
@@ -92,13 +94,16 @@
    降低make / gcc / g++ 版本：
 
    ```shell
-   # 去https://ftp.gnu.org/gnu/make/下载make-4.81
+   # 去https://ftp.gnu.org/gnu/make/下载make-3.81
    ./configure --prefix=/usr/local/make-3.81
+   # 注释glob/glob.c　
+   # #if !defined __alloca && !defined __GNU_LIBRARY__\
+   # #endif
    make 
    sudo make install
    sudo apt install gcc-4.8 g++-4.8
    # 在 /opt/gnu/bin 下面创建 make gcc-4.8 g++-4.8 的软连接
-   # /opt/gnu/bin将如PATH
+   # /opt/gnu/bin 加入PATH
    # GNU 4.8 临时需要降低版本，用后注释掉就行
    export PATH=/opt/gnu/bin:$PATH
    source ~/.zshrc
@@ -109,7 +114,49 @@
 
 3. **源码调试**
 
-   先生成`compilation database`，
+   尝试用工具生成compile_commands.json发现都不靠谱，还是用添加CMakeLists.txt的方式。找到了一个可用的配置文件 https://github.com/zhangyongheng/jdkbuild/blob/master/openjdk8/CMakeLists.txt, 略加修改后，就可以使用了。
+   
+   **测试 java -version **:
+   
+   在 CLion 中添加一个测试用的 CMake Application:
+   
+   Name: java-version
+   Target: openjdk8
+   Executable: /home/lee/mywork/java/openjdk/openjdk8u40/build/linux-x86_64-normal-server-slowdebug/jdk/bin/java
+   Program arguments: -version
+   
+   > 注意将 Before launch 中的 build 删掉（这个build是用CMake编译的），代码已经编译好了只要不改代码就不需要重新编译。
+   
+   执行debug测试，发现报 SIGSEGV 信号异常信息。SIGSEGV是指一个进程执行了一个无效的内存引用或发生了段错误。
+   
+   看源码发现是因为 get_cpu_info_stub 方法指针为 NULL；可以将这个方法调用注释掉然后重新编译或者在GDB中忽略这个信号（在gdb命令行中输入 handle SIGSEGV nostop noprint pass）。
+   
+   ```
+   static get_cpu_info_stub_t get_cpu_info_stub = NULL;
+   
+   void VM_Version::get_cpu_info_wrapper() {
+     get_cpu_info_stub(&_cpuid_info);
+   }
+   ```
+   
+   **测试 Hello  World 程序**：
+   
+   在 CLion 中再添加一个 CMake Application:
+   
+   Name: hello-jvm
+   Program arguments: top.kwseeker.jvm.debug.HelloJVM
+   Working directory: /home/lee/mywork/java/jvm-debug/target/classes
+   
+   执行：
+   
+   ```
+   /home/lee/mywork/java/openjdk/openjdk8u40/build/linux-x86_64-normal-server-slowdebug/jdk/bin/java top.kwseeker.jvm.debug.HelloJVM
+   Hello JVM!
+   
+   Process finished with exit code 0
+   ```
+   
+   
 
 **参考**：
 
