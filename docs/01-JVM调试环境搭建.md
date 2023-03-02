@@ -129,13 +129,19 @@
    
    执行debug测试，发现报 SIGSEGV 信号异常信息。SIGSEGV是指一个进程执行了一个无效的内存引用或发生了段错误。
    
-   看源码发现是因为 get_cpu_info_stub 方法指针为 NULL；可以将这个方法调用注释掉然后重新编译或者在GDB中忽略这个信号（在gdb命令行中输入 handle SIGSEGV nostop noprint pass）。
+   看源码发现是因为 get_cpu_info_stub 方法指针为 NULL；可以在这个方法中添加判空然后重新编译或者在GDB中忽略这个信号（在gdb命令行中输入 handle SIGSEGV nostop noprint pass）。
    
-   ```
+   ```java
    static get_cpu_info_stub_t get_cpu_info_stub = NULL;
    
    void VM_Version::get_cpu_info_wrapper() {
      get_cpu_info_stub(&_cpuid_info);
+   }
+   //改为
+   void VM_Version::get_cpu_info_wrapper() {
+     if (get_cpu_info_stub != NULL) {
+       get_cpu_info_stub(&_cpuid_info);
+     }
    }
    ```
    
