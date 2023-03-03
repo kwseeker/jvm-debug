@@ -134,3 +134,55 @@ openjdk
 
 ## JVM工作流程
 
+参考 jvm-workflow.drawio, 这里只是对流程图的补充。
+
+JVM 是 C/C++ 编写的入口是 jdk/src/share/bin/main.c 的 main() 函数，JLI_Launch() 是main()中调用的第一个函数也是惟一一个函数，是Java 虚拟机的启动函数。
+
+主要步骤包括：
+
+1. 解析命令行参数，包括 Java 应用程序的参数和 JVM 配置参数。
+
+2. 初始化启动器，主要就是设置下日志开关 `_launcher_debug`，通过 JLDEBUG_ENV_ENTRY 环境变量开启，这个应该有用，调试时添加下这个环境变量。
+
+   ```
+   _JAVA_LAUNCHER_DEBUG=true
+   ```
+
+3. 初始化 JVM。首先会根据指定的 JVM 类路径查找 `libjvm.so` 库，并加载该库。然后，通过 `JNI_CreateJavaVM()` 函数创建一个 Java 虚拟机实例，并设置 JVM 的启动参数。
+
+4. 加载 Java 应用程序类。`JLI_Launch()` 函数会根据 Java 应用程序的类路径和主类名加载 Java 应用程序的主类。如果找不到主类，则会抛出 `java/lang/NoClassDefFoundError` 异常。
+
+5. 启动 Java 应用程序。`JLI_Launch()` 函数会调用 Java 应用程序的 `main()` 函数，并将命令行参数传递给 `main()` 函数。
+
+6. 退出 JVM。Java 应用程序执行完成后，`JLI_Launch()` 函数会销毁 Java 虚拟机实例，并释放相关资源。
+
+
+
+### 命令行参数解析
+
+```C++
+int argc, char ** argv,                 //main参数，包括 java命令、-options class args...， java [-options] class [args...]
+int jargc, const char** jargv,          //Java参数, 指 args...
+int appclassc, const char** appclassv,  //应用 classpath，通过 -cp 或 -classpath 指定
+const char* fullversion,                //JDK完整版本信息
+const char* dotversion,                 //JDK简短版本信息，如：1.8
+const char* pname,                      //应用名（命令名），如：java、jmap等
+const char* lname,                      //启动器名称，JVM的名称么？
+jboolean javaargs,                      //是否附带java参数（即args...是否为空）
+jboolean cpwildcard,                    //用于指示是否启用 classpath 通配符扩展
+jboolean javaw,                         //是否是窗口程序
+jint ergo
+```
+
+> 语法补漏：
+>
+> `__builtin_va_start` is a built-in function in the C programming language that is used to initialize a `va_list` object, which is a list of arguments whose number and types are not known at compile time.
+>
+> The `va_list` object is typically used in functions that accept a variable number of arguments.
+>
+> 总结: `va_list` 就是类似Java Object 或 Go interface{} 的对象，可以接收任何类型的参数，而且还可以接收不定数量的参数。
+
+
+
+
+
