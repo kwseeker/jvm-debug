@@ -156,8 +156,6 @@ JVM 是 C/C++ 编写的入口是 jdk/src/share/bin/main.c 的 main() 函数，JL
 
 6. 退出 JVM。Java 应用程序执行完成后，`JLI_Launch()` 函数会销毁 Java 虚拟机实例，并释放相关资源。
 
-
-
 ### 命令行参数解析
 
 ```C++
@@ -184,5 +182,8 @@ jint ergo
 
 
 
+## 参考资料
 
-
++ [【JVM源码解析】虚拟机解释执行Java方法（上）](https://segmentfault.com/a/1190000041061285)
++ [【JVM源码解析】模板解释器解释执行Java字节码指令（上）](https://segmentfault.com/a/1190000041015395)
++ [JVM源码解读：Java方法main在虚拟机上解释执行](https://segmentfault.com/a/1190000040944497)

@@ -12,7 +12,7 @@
 
     ```cpp
     //C++ new 是个运算符，也可以被重载，从而改变内存的分配方式
-    //JVM ostream_init() 
+    //JVM ostream_init() 中的这行代码是使用重载的new运算符创建默认的stream对象
     defaultStream::instance = new(ResourceObj::C_HEAP, mtInternal) defaultStream();
     //new 重载运算符声明
     void* operator new(size_t size, allocation_type type, MEMFLAGS flags) throw();
@@ -22,4 +22,11 @@
 
     类成员可以被定义为 public、private 或 protected。默认情况下是定义为 private。
 
+  + 构造函数中可以定义成员初始化列表
+  
+    ```cpp
+    Student::Student(char *name, int age, float score): m_name(name), m_age(age), m_score(score) {
+    }
+    ```
+  
     
